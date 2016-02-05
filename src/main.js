@@ -106,8 +106,7 @@ function register(moduleName) {
         app.use('/' + moduleName, _requireRouter);
         console.log('\t', 'rotas:  ', _path + '/routes/' + routeName);
     }
-    console.log('\t', 'public: ', path + '/public/');
+    console.log('\t', 'public: ', _path + '/public/');
     console.log('\t', 'views:  ', path.join(_path, 'views'));
     console.log('---------------------------------------------------------------------------------');
-}
-;
+};
