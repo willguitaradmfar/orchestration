@@ -24,7 +24,7 @@ $ npm install
 Run
 
 ```bash
-$ npm start
+$ MODULES=$(pwd)/modules/ npm start
 ```
 
 Open
