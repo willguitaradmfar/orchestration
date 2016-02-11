@@ -28,9 +28,24 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.use(cookieParser());
 app.use(session({secret: 'session'}));
 
-if (!fs.existsSync(pathModules)) {
-    fs.mkdirSync(pathModules);
-}
+var blackList = ['node_modules'];
+
+var verifyBlackList = function (module) {
+    for (i in blackList) {
+        if (blackList[i] == module) {
+            return false;
+        }
+    }
+    return true;
+};
+
+var mkdir = function (pathMkdir) {
+    if (!fs.existsSync(pathMkdir)) {
+        fs.mkdirSync(pathMkdir);
+    }
+};
+
+mkdir(pathModules);
 
 var modules = fs.readdirSync(pathModules);
 
@@ -43,33 +58,35 @@ if (modules.length == 0) {
 
 for (var i in modules) {
     var module = modules[i];
-    console.log('Importing module', '(' + module + ')', '...');    
-    registerView(module);    
+    if (!verifyBlackList(module))
+        continue;
+    registerView(module);
 }
+console.log('---------------------------------------------------------------------------------');
 
 for (var i in modules) {
     var module = modules[i];
-    console.log('Importing module', '(' + module + ')', '...');
-    registerRule(module);    
+    if (!verifyBlackList(module))
+        continue;
+    registerRule(module);
 }
+console.log('---------------------------------------------------------------------------------');
 
 for (var i in modules) {
     var module = modules[i];
-    console.log('Importing module', '(' + module + ')', '...');    
-    registerCSS(module);    
+    if (!verifyBlackList(module))
+        continue;
+    registerRouter(module);
 }
+console.log('---------------------------------------------------------------------------------');
 
 for (var i in modules) {
     var module = modules[i];
-    console.log('Importing module', '(' + module + ')', '...');    
-    registerJS(module);
+    if (!verifyBlackList(module))
+        continue;
+    registerDone(module);
 }
-
-for (var i in modules) {
-    var module = modules[i];
-    console.log('Importing module', '(' + module + ')', '...');    
-    registerRouter(module);    
-}
+console.log('---------------------------------------------------------------------------------');
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -80,7 +97,7 @@ app.use(function (req, res, next) {
 
 if (app.get('env') === 'development') {
     app.use(function (err, req, res, next) {
-        if(err.status != 404)
+        if (err.status != 404)
             console.trace(err);
         res.status(err.status || 500);
         res.json({
@@ -91,7 +108,7 @@ if (app.get('env') === 'development') {
 }
 
 app.use(function (err, req, res, next) {
-    if(err.status != 404)
+    if (err.status != 404)
         console.trace(err);
     res.status(err.status || 500);
     res.json({
@@ -104,92 +121,77 @@ if (modules.length > 0)
     server.listen(app.get('port'));
 
 function registerRule(moduleName) {
-
-    if (!fs.existsSync(pathModules + moduleName + '/rules/')) {
-        fs.mkdirSync(pathModules + moduleName + '/rules/');
-    }
-    var rules = fs.readdirSync(pathModules + moduleName + '/rules/');
+    var pathMkdir = pathModules + moduleName + '/rules/';    
+    
+    mkdir(pathMkdir);
+    
+    var rules = fs.readdirSync(pathMkdir);
 
     var _path = pathModules + moduleName;
-    
-    console.log('\t', 'rule');
 
-    for (var i in rules) {        
+    console.log('Scan rule');
+
+    for (var i in rules) {
         var ruleName = rules[i];
-        console.log('\t\t', 'rules:  ', _path + '/routes/' + ruleName);
+        console.log('\t', moduleName + ':  ', _path + '/routes/' + ruleName);
         var _requireRule = require(_path + '/rules/' + ruleName);
-        _global.atach(moduleName, ruleName, _requireRule);        
-    }   
-    
-    console.log('---------------------------------------------------------------------------------');
-};
+        _global.atach(moduleName, ruleName, _requireRule);
+    }
+}
+;
 
 function registerRouter(moduleName) {
+    
+    var pathMkdir = pathModules + moduleName + '/routes/';
+    
+    mkdir(pathMkdir);
 
-    var routes = fs.readdirSync(pathModules + moduleName + '/routes/');
-    
+    var routes = fs.readdirSync(pathMkdir);
+
     var _path = pathModules + moduleName;
-    
-    console.log('\t', 'router');
+
+    console.log('Scan router');
 
     for (var i in routes) {
         var routeName = routes[i];
-        console.log('\t\t', 'rotas:  ', _path + '/routes/' + routeName);
+        console.log('\t', moduleName + ':  ', _path + '/routes/' + routeName);
         var _requireRouter = require(_path + '/routes/' + routeName);
         app.set('views', path.join(_path, 'views'));
         app.use('/' + moduleName, _requireRouter);
-        app.use('/' + moduleName, express.static(_path + '/public/'));        
+        app.use('/' + moduleName, express.static(_path + '/public/'));
     }
-    console.log('\t\t', 'public: ', _path + '/public/');
-    console.log('\t\t', 'views:  ', path.join(_path, 'views'));
-    console.log('---------------------------------------------------------------------------------');
-};
+    console.log('\t', 'public: ', _path + '/public/');
+    console.log('\t', 'views:  ', path.join(_path, 'views'));
+}
+;
 
-function registerCSS(moduleName) {
-    
-    var csss = fs.readdirSync(pathModules + moduleName + '/public/stylesheets/');
-    
-    var _path = pathModules + moduleName;
-    
-    console.log('\t', 'css');
-    
-    for (var i in csss) {
-        var cssName = csss[i];
-        console.log('\t\t', 'csss:  ', _path + '/public/stylesheets/' + cssName);
-        _global.addCSS(moduleName , cssName, '/' + moduleName + '/stylesheets/' + cssName);        
-    }   
-    
-    console.log('---------------------------------------------------------------------------------');
-};
-
-function registerJS(moduleName) {
-    
-    var jss = fs.readdirSync(pathModules + moduleName + '/public/javascripts/');    
-    
-    var _path = pathModules + moduleName;
-    
-    console.log('\t', 'jss');
-    
-    for (var i in jss) {
-        var jsName = jss[i];
-        console.log('\t\t', 'jss:  ', _path + '/public/javascripts/' + jsName);        
-        _global.addJS(moduleName , jsName, '/' +moduleName + '/javascripts/' + jsName);
-    }
-    
-    console.log('---------------------------------------------------------------------------------');
-};
 
 function registerView(moduleName) {
     
-    var views = fs.readdirSync(pathModules + moduleName + '/views/');    
+    var pathMkdir = pathModules + moduleName + '/views/';
     
+    mkdir(pathMkdir);
+
+    var views = fs.readdirSync(pathMkdir);
+
     var _path = pathModules + moduleName;
-    
-    console.log('\t', 'views');
-    
-    console.log('\t\t', 'views:  ', _path + '/views/');
+
+    console.log('Scan views');
+
+    console.log('\t', moduleName + ':  ', _path + '/views/');
     _global.addView(moduleName, _path + '/views/');
+}
+;
+
+function registerDone(moduleName) {
     
+    var pathMkdir = pathModules + moduleName + '/register.js';
     
-    console.log('---------------------------------------------------------------------------------');
-};
+    console.log('Scan registerDone');
+    
+    if(fs.existsSync(pathMkdir)){
+        console.log('\t', moduleName + ':  ', pathMkdir);
+        require(pathMkdir);        
+    }    
+}
+;
