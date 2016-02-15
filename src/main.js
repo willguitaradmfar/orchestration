@@ -56,6 +56,37 @@ if (modules.length == 0) {
     console.log('3)\t', '(http://localhost:3000/mymodule)');
 }
 
+var modulesObj = [];
+
+for (var i in modules) {
+    var module = modules[i];
+    if (!verifyBlackList(module))
+        continue;
+
+    var obj = {
+        priority: 1000,
+        module: module
+    };
+
+    var package = fs.readFileSync(pathModules + module + '/' + 'package.json');
+
+    if (!package) {
+        modulesObj.push(obj);
+        continue;
+    }
+
+    priority = JSON.parse(package.toString()).priority;
+
+    obj.priority = priority || obj.priority;
+    modulesObj.push(obj);
+}
+
+modules = modulesObj.sort(function (a, b) {
+    return a.priority - b.priority;
+}).map(function (obj) {
+    return obj.module
+});
+
 for (var i in modules) {
     var module = modules[i];
     if (!verifyBlackList(module))
@@ -121,10 +152,10 @@ if (modules.length > 0)
     server.listen(app.get('port'));
 
 function registerRule(moduleName) {
-    var pathMkdir = pathModules + moduleName + '/rules/';    
-    
+    var pathMkdir = pathModules + moduleName + '/rules/';
+
     mkdir(pathMkdir);
-    
+
     var rules = fs.readdirSync(pathMkdir);
 
     var _path = pathModules + moduleName;
@@ -141,9 +172,9 @@ function registerRule(moduleName) {
 ;
 
 function registerRouter(moduleName) {
-    
+
     var pathMkdir = pathModules + moduleName + '/routes/';
-    
+
     mkdir(pathMkdir);
 
     var routes = fs.readdirSync(pathMkdir);
@@ -167,9 +198,9 @@ function registerRouter(moduleName) {
 
 
 function registerView(moduleName) {
-    
+
     var pathMkdir = pathModules + moduleName + '/views/';
-    
+
     mkdir(pathMkdir);
 
     var views = fs.readdirSync(pathMkdir);
@@ -184,14 +215,14 @@ function registerView(moduleName) {
 ;
 
 function registerDone(moduleName) {
-    
+
     var pathMkdir = pathModules + moduleName + '/register.js';
-    
+
     console.log('Scan registerDone');
-    
-    if(fs.existsSync(pathMkdir)){
+
+    if (fs.existsSync(pathMkdir)) {
         console.log('\t', moduleName + ':  ', pathMkdir);
-        require(pathMkdir);        
-    }    
+        require(pathMkdir);
+    }
 }
 ;
